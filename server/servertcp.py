@@ -1,5 +1,4 @@
 import os
-import threading as hilo
 import socket
 import logging
 
@@ -54,6 +53,3 @@ class Servidor_tcp:
         finally:
             logging.info('Cerrando conexion tcp')
             serverSocket.close()  #gdta se cierra socket tcp
-
-sc = Servidor_tcp()
-sc.montar()
