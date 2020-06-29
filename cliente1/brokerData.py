@@ -12,7 +12,7 @@ MQTT_PASS = "proyectos980"
 arch = 'topics.log'
 ESTADO_ALIVE = False
 ALIVE_PERIOD = 2
-#GDTA Credenciales
+#SMC pasa los datos del archivo  a una vector
 def read(a):
     LISTADO = a
     datos = []
@@ -22,14 +22,18 @@ def read(a):
         datos.append(registro[i].replace('\n', '') ) 
     archivo.close()
     return datos
+#SMC se obtienen los datos del vextor 
 datos = read(arch)
-#print(datos)
 usuario = datos[1]
 sala1= datos[3]
 sala2= datos[4]
 sala3= datos[5]
-
-#GDTA comaistrondos SE CONFIGURAN LAS INSTRUCCIONES, LOS TOPICS Y LAS TRAMAS DE 
+qos = 0
+user2 = datos[13]  #titus
+user2_t = datos[13].encode() 
+user_t =datos[1].encode()  #sebas
+GRUPO = datos[15]
+#SMC comandos SE CONFIGURAN LAS INSTRUCCIONES, LOS TOPICS Y LAS TRAMAS DE 
 # CADA USUARIO
 FTR = b'\x03'       #audio
 ALIVE = b'\x04'     #alive
@@ -44,44 +48,37 @@ ALIVE1 = 'x04'
 ACK1 = 'x05'
 OK1 = 'x06'
 NO1 = 'x07'
-
-
 SEPARADOR = b'$'
-#destinos o topics de subscripcion
-qos = 0
-user2 = datos[13]  #titus
-user2_t = datos[13].encode() 
-user_t =datos[1].encode()  #sebas
-GRUPO = datos[15]
 
 
+
+#SMC destinos o topics de subscripcion
 #alive
 topicComandos_alive = 'comandos/'+str(GRUPO)
 tramaALIV = ALIVE+SEPARADOR+user_t  
 
-#salas
+#SMC salas
 topic_sala1 = 'salas/'+str(GRUPO)+'/'+sala1
 topic_sala2 = 'salas/'+str(GRUPO)+'/'+sala2
-#subs
+#SMC subs
 SUBS_comandos2 = (topicComandos_alive, qos)
 SUBS_comandos = (datos[7], qos)
 SUBS_usuario = (datos[8], qos)
 SUBS_sala1 = (datos[9], qos)
 SUBS_sala2 = (datos[10], qos)
-#tramas de comandos
+#SMC tramas de comandos
 trama_ACK = ACK+user_t
 
-#audio
+#SMC audio
 PUBL_user2 = 'usuarios/'+str(GRUPO)+'/'+str(user2)
 PUBL_audios_us =  'audios/'+str(GRUPO)+'/'+str(user2)
 PUBL_audios_sal1= 'audios/'+str(GRUPO)+'/'+str(sala1)
 PUBL_audios_sal2= 'audios/'+str(GRUPO)+'/'+str(sala2)
-#topics
+#SMC topics
 topic_comandos = datos[7]
 topic_audio = 'audios/'+str(GRUPO)+'/'+str(usuario)
 topic_audio_sala1 = 'salas/'+str(GRUPO)+'/'+str(sala1)
 topic_audio_sala2 = 'salas/'+str(GRUPO)+'/'+str(sala1)
 
-#SMC class comandos (object):
 
 

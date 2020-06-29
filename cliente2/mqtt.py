@@ -8,11 +8,12 @@ import threading #Concurrencia con hilos
 import sys 
 import os 
 from brokerData import* #Informacion de la conexion
-#variablews globales 
+from clienttcp import*
 
 #GDTA SE CONFIGURA ARCHIVO PARA HISTORIAL Y LOGGING
 LOG_FILENAME = 'mqtt.log'
 sockt = socket.socket()
+audio = Cliente_tcp()
 #os.remove("mqtt.log")
 
 #Configuracion inicial de logging
@@ -20,35 +21,30 @@ logging.basicConfig(
     level = logging.INFO, 
     format = '[%(levelname)s] (%(processName)-10s) %(message)s'
     )
-
+#SMC clase de comandos
 class comandos:
     def __init__(self, data = []):
         self.data = True
-
-    #La "longitud" del objeto, es en realidad representado
-    #por la cantidad de datos de su lista principal
-    def __len__(self):
-        return len(self.data)
-    def __str__(self):
-        return str(self.data)
-    #mensaje de alive cada 2 segundos
+    #SMC funcion alive
     def alive(self,ALIVE_PERIOD):
-      # se envia un menaje cada 2 segundos indicando que sigue conectado
         intentos = 0
         desconeccion = 0
+         #smc se envia un menaje cada 2 segundos indicando que sigue conectado
         while True:      
             client.publish(topicComandos_alive, tramaALIV, qos = 0,retain = False)
             time.sleep(ALIVE_PERIOD)
             vect_alive = read(LOG_FILENAME)
             a = list(vect_alive[1])
-            if len(a) == 1:
+            #SMC verifica los mensajes de verificacon de servidor
+            if len(a) == 1: #SMC lee el vector donde se guardan los mensajes entrantes
                 intentos += 1
                 if intentos > 3:
-                    ALIVE_PERIOD = 0.1
+                    ALIVE_PERIOD = 0.1 #SMC aumenta la velocidad de envio de mensaje alive 
                     desconeccion += 1
                     if desconeccion == 200:
                         logging.critical('no se puede establecer conexión al servidor.')
-                        sys.exit() 
+                        sys.exit()
+                        client.loop_stop() 
             if len(a) > 1:
                 ALIVE_PERIOD = 2
                 intentos = 0
@@ -56,18 +52,20 @@ class comandos:
                 i = 1
                 mensaje = 1
                 comand.archi(mensaje,i)
-   
+    #SMC escribe en el alrchivo mqrr.log
     def archi(self,pay,i):
-        vect_alive = read(LOG_FILENAME)
-        vect_alive[i]= str(pay)
+        vect_datos = read(LOG_FILENAME)
+        vect_datos[i]= str(pay)
         archivo = open(LOG_FILENAME,'w') #Abrir para SOBREESCRIBIR el archivo existente
-        for i in range(len(vect_alive)):
-            archivo.write(vect_alive[i]+'\n')
+        for i in range(len(vect_datos)):
+            archivo.write(vect_datos[i]+'\n')
         archivo.close()
+    #SMC pasa a un vector los mensajes que llegan
     def negociación (self,mnsa):
         res = mnsa.split('$')
         res[0]=res[0].replace("b'\\",'')
         return res[0]
+    #SMC verifica las respuestas del servidor 
     def respuesta (self):
         vect_respuesta = read(LOG_FILENAME)
         ver = comand.negociación(vect_respuesta[4])
@@ -87,10 +85,11 @@ class comandos:
     def __repr__(self):
         return self.__str__()
 
-
+#SMC clase de manejo del cliente
 class Manejo_Cliente:
     def __init__(self, data = []):
         self.data = True
+#SMC envio de mensajes 
     def mensajes(self,x):
         print('a. Enviar a usuario')
         print('b. Enviar a sala')
@@ -118,19 +117,14 @@ class Manejo_Cliente:
                 trama = user_t + SEPARADOR + t.encode() #codifica el mensaje 
                 #enviamos el mensaje
                 client.publish(topic_sala2, trama, qos = 0,retain = False)
-
+#SMC envio de audio
     def audio(self,x):
         print('elija la duración del audio')
         t = int(input('-:'))
         os.system('arecord -d {!r} -f U8 -r 8000 audio_p.wav'.format(t))
         size =str(os.stat('audio_p.wav').st_size)
-            
-        '''
-        f = open("audio_p.wap", "rb")
-        imagestring = f.read()
-        f.close()
-        trama_audio = bytearray(imagestring)
-        '''
+        global reproducir
+        reproducir = Audio(size)
         print('Enviar a')
         print('1. sala')
         print('2. usuario')
@@ -143,9 +137,25 @@ class Manejo_Cliente:
             if t == '1':
                 tramaFTR= FTR+SEPARADOR+sala1.encode()+SEPARADOR+size.encode() 
                 client.publish(topic_comandos,tramaFTR , qos = 0,retain = False)
-            if t == '2':
-                tramaFTR= FTR+SEPARADOR+sala2.encode()+SEPARADOR+size.encode() 
-                client.publish(topic_comandos,tramaFTR , qos = 0,retain = False)
+                print('esperando respuesta .....')
+                time.sleep(0.5)
+                res =comand.respuesta ()
+                if res == True:
+                    audio.enviar_audio()
+                    print("\n\nArchivo enviado a: ")
+                if res == False:
+                    logging.error('no es posible enviar el archivo')
+                if t == '2':
+                    tramaFTR= FTR+SEPARADOR+sala2.encode()+SEPARADOR+size.encode() 
+                    client.publish(topic_comandos,tramaFTR , qos = 0,retain = False)
+                    print('esperando respuesta .....')
+                    time.sleep(0.5)
+                    res =comand.respuesta ()
+                    if res == True:
+                        audio.enviar_audio()
+                        print("\n\nArchivo enviado a: ")
+                    if res == False:
+                        logging.error('no es posible enviar el archivo')
         if t == '2':
             tramaFTR= OK+SEPARADOR+user2_t+SEPARADOR+size.encode()
             client.publish(topic_comandos,tramaFTR , qos = 0,retain = False)
@@ -153,13 +163,7 @@ class Manejo_Cliente:
             time.sleep(0.5)
             res =comand.respuesta ()
             if res == True:
-                print('enviar archivo')
-                sockt.connect(('localhost',9824))
-               
-                with open('audio_p.wav', 'rb') as f: #Se abre el archivo a enviar en BINARIO
-                    sockt.sendfile(f, 0)
-                    f.close()
-                sockt.close()
+                audio.enviar_audio()
                 print("\n\nArchivo enviado a: ")
             if res == False:
                 logging.error('no es posible enviar el archivo')
@@ -173,7 +177,8 @@ def play():
 
 #Handler en caso suceda la conexion con el broker MQTT
 def on_connect(client, userdata, flags, rc): 
-    client.subscribe([SUBS_comandos,SUBS_usuario,SUBS_sala1,SUBS_sala2])#,SUBS_comandos2
+    client.subscribe([SUBS_comandos,SUBS_usuario,SUBS_sala1,SUBS_sala2])#suscripcion
+    #SMC evia el mensaje de alive 
     t2 = threading.Thread (name = 'verificacion',
                             target = comand.alive,
                             args=(ALIVE_PERIOD,),
@@ -192,12 +197,11 @@ def on_publish(client, userdata, mid):
 def on_message(client, userdata, msg):
     #Se muestra en pantalla informacion que ha llegado
     respuesta = comand.negociación(str(msg.payload))
-    '''
-    if topic_audio== str(msg.topic) or topic_audio_sala1 == str(msg.topic) or topic_audio_sala2 == str(msg.topic):
-        archivo = open('audio_s.wav', 'wb')
-        archivo.write(msg.payload)
+
+    if topic_comandos == str(msg.topic) and FRR1 == respuesta:
+        audio.recibir_audio()
         hil ()
-    '''
+  
     if topic_comandos == str(msg.topic) and str(ACK1)== respuesta:
         logging.info("Ha llegado el mensaje al topic: " + str(msg.topic))
         logging.info("El contenido del mensaje es: " + str(msg.payload))
@@ -216,11 +220,11 @@ def on_message(client, userdata, msg):
         mensaje = msg.payload
         i = 7
         comand.archi(mensaje,i)
-    '''
+ 
     else:
         logging.info("Ha llegado el mensaje al topic: " + str(msg.topic))
         logging.info("El contenido del mensaje es: " + str(msg.payload))
-    '''
+
 
 
 
@@ -241,7 +245,7 @@ client.connect(host=MQTT_HOST, port = MQTT_PORT) #Conectar al servidor remoto
 
 def hil ():
     t1 = threading.Thread (name = 'verificacion',
-                                target = play,
+                                target = reproducir.reproducir_recibido ,
                                 daemon = True
                                 )
 
@@ -268,8 +272,6 @@ try:
         elif x == 3:
             logging.warning("Desconectando del broker MQTT...")
             client.loop_stop()
-            #if t1.isAlive():
-             #   t1._stop()
             break      
         else:
             print('numero incorrecto')
