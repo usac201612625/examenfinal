@@ -64,9 +64,10 @@ class comandos:
     #SMC pasa a un vector los mensajes que llegan
     def negociación (self,mnsa):
         res = mnsa.split('$')
-        print(res)
-        res[0]=res[0].replace("b'\\",'')
-        res[1]=res[0:-2]
+        for i in range(len(res)):
+            res[i]=res[i].replace("b'\\",'')
+            res[i]=res[i].replace("b",'')
+            res[i]=res[i].replace("'",'')
         return res[0] , res[1]
     #SMC verifica las respuestas del servidor 
     def respuesta (self):
@@ -102,6 +103,7 @@ class Manejo_Cliente:
             if t == '1' :
                 t = input('escriba el texto:  ')
                 trama = user_t + SEPARADOR + t.encode() #codifica el mensaje 
+                trama = cifrar(str(trama))
                 #enviamos el mensaje
                 client.publish(PUBL_user2, trama, qos = 0,retain = False)
         if t == 'b':
@@ -111,12 +113,13 @@ class Manejo_Cliente:
             if t == '1' :
                 t = input('escriba el texto:  ')
                 trama = user_t + SEPARADOR + t.encode() #codifica el mensaje 
+                trama = cifrar(str(trama))
                 #enviamos el mensaje
                 client.publish(topic_sala1 , trama, qos = 0,retain = False)
             if t == '2' :
                 t = input('escriba el texto:  ')
-                t = cifrar(t)
                 trama = user_t + SEPARADOR + t.encode() #codifica el mensaje 
+                trama = cifrar(str(trama))
                 #enviamos el mensaje
                 client.publish(topic_sala2, trama, qos = 0,retain = False)
 #SMC envio de audio
@@ -179,7 +182,7 @@ def play():
 
 #Handler en caso suceda la conexion con el broker MQTT
 def on_connect(client, userdata, flags, rc): 
-    client.subscribe([SUBS_comandos,SUBS_usuario,SUBS_sala1,SUBS_sala2,SUBS_usuario2])#suscripcion
+    client.subscribe([SUBS_comandos,SUBS_usuario,SUBS_sala1,SUBS_sala2])#suscripcion
     #SMC evia el mensaje de alive 
     t2 = threading.Thread (name = 'verificacion',
                             target = comand.alive,
@@ -198,9 +201,9 @@ def on_publish(client, userdata, mid):
 
 def on_message(client, userdata, msg):
     #Se muestra en pantalla informacion que ha llegado
-    
-    respuesta, user = comand.negociación(str(msg.payload))
-    user = descifrar(user)
+    h = descifrar(msg.payload)
+    respuesta, user = comand.negociación(h)
+    print(respuesta + ' ' +user)
     if topic_comandos == str(msg.topic) and FRR1 == respuesta:
         audio.recibir_audio()
         hil ()
@@ -208,17 +211,16 @@ def on_message(client, userdata, msg):
     elif topic_comandos == str(msg.topic) and str(ACK1)== respuesta and str(usuario) == user :
         logging.info("Ha llegado el mensaje al topic: " + str(msg.topic))
         logging.info("El contenido del mensaje es: " + str(msg.payload))
-        print('hola')
         mensaje = msg.payload
         i = 1
         comand.archi(mensaje,i)
-    elif topic_comandos == str(msg.topic) and (str(NO1) == respuesta or str(OK1)== respuesta):
+    elif topic_comandos == str(msg.topic) and (str(NO1) == respuesta or str(OK1)== respuesta)and str(usuario) == user:
         logging.info("Ha llegado el mensaje al topic: " + str(msg.topic))
         logging.info("El contenido del mensaje es: " + str(msg.payload))
         mensaje = msg.payload
         i = 4
         comand.archi(mensaje,i)
-    elif topic_comandos == str(msg.topic) and str(FRR1) == respuesta :
+    elif topic_comandos == str(msg.topic) and str(FRR1) == respuesta and str(usuario) == user:
         logging.info("Ha llegado el mensaje al topic: " + str(msg.topic))
         logging.info("El contenido del mensaje es: " + str(msg.payload))
         mensaje = msg.payload
@@ -227,7 +229,7 @@ def on_message(client, userdata, msg):
  
     else:
         logging.info("Ha llegado el mensaje al topic: " + str(msg.topic))
-        logging.info("El contenido del mensaje es: " + str(msg.payload))
+        logging.info("mensaje de :"+str(respuesta)+" "+ "El contenido del mensaje es: " +str(user))
 
 
 

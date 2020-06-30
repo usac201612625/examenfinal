@@ -29,4 +29,10 @@ def descifrar(d_msj):
         msg = msg + d_usuario[i]
     return msg
 
-
+'''
+a = b'\x07$201612146$hola'
+print(str(a))
+t = cifrar(str(a))
+print(t)
+print(descifrar(t))
+'''
