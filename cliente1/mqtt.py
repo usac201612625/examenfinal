@@ -203,7 +203,7 @@ def on_message(client, userdata, msg):
     #Se muestra en pantalla informacion que ha llegado
     h = descifrar(msg.payload)
     respuesta, user = comand.negociación(h)
-    print(respuesta + ' ' +user)
+
     if topic_comandos == str(msg.topic) and FRR1 == respuesta:
         audio.recibir_audio()
         hil ()

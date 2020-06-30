@@ -102,7 +102,7 @@ class Manejo_Cliente:
             t = input('-:')
             if t == '1' :
                 t = input('escriba el texto:  ')
-                trama = user_t + SEPARADOR + t.encode() #codifica el mensaje 
+                trama = user_t + SEPARADOR + t.encode()  #codifica el mensaje 
                 trama = cifrar(str(trama))
                 #enviamos el mensaje
                 client.publish(PUBL_user2, trama, qos = 0,retain = False)
@@ -203,7 +203,6 @@ def on_message(client, userdata, msg):
     #Se muestra en pantalla informacion que ha llegado
     h = descifrar(msg.payload)
     respuesta, user = comand.negociación(h)
-    print(respuesta + ' ' +user)
     if topic_comandos == str(msg.topic) and FRR1 == respuesta:
         audio.recibir_audio()
         hil ()
@@ -211,7 +210,6 @@ def on_message(client, userdata, msg):
     elif topic_comandos == str(msg.topic) and str(ACK1)== respuesta and str(usuario) == user :
         logging.info("Ha llegado el mensaje al topic: " + str(msg.topic))
         logging.info("El contenido del mensaje es: " + str(msg.payload))
-        print('hola')
         mensaje = msg.payload
         i = 1
         comand.archi(mensaje,i)
