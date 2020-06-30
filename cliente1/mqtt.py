@@ -182,7 +182,7 @@ def play():
 
 #Handler en caso suceda la conexion con el broker MQTT
 def on_connect(client, userdata, flags, rc): 
-    client.subscribe([SUBS_comandos,SUBS_usuario,SUBS_sala1,SUBS_sala2,SUBS_usuario2])#suscripcion
+    client.subscribe([SUBS_comandos,SUBS_usuario,SUBS_sala1,SUBS_sala2])#suscripcion
     #SMC evia el mensaje de alive 
     t2 = threading.Thread (name = 'verificacion',
                             target = comand.alive,
@@ -211,17 +211,16 @@ def on_message(client, userdata, msg):
     elif topic_comandos == str(msg.topic) and str(ACK1)== respuesta and str(usuario) == user :
         logging.info("Ha llegado el mensaje al topic: " + str(msg.topic))
         logging.info("El contenido del mensaje es: " + str(msg.payload))
-        print('hola')
         mensaje = msg.payload
         i = 1
         comand.archi(mensaje,i)
-    elif topic_comandos == str(msg.topic) and (str(NO1) == respuesta or str(OK1)== respuesta):
+    elif topic_comandos == str(msg.topic) and (str(NO1) == respuesta or str(OK1)== respuesta)and str(usuario) == user:
         logging.info("Ha llegado el mensaje al topic: " + str(msg.topic))
         logging.info("El contenido del mensaje es: " + str(msg.payload))
         mensaje = msg.payload
         i = 4
         comand.archi(mensaje,i)
-    elif topic_comandos == str(msg.topic) and str(FRR1) == respuesta :
+    elif topic_comandos == str(msg.topic) and str(FRR1) == respuesta and str(usuario) == user:
         logging.info("Ha llegado el mensaje al topic: " + str(msg.topic))
         logging.info("El contenido del mensaje es: " + str(msg.payload))
         mensaje = msg.payload
