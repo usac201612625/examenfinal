@@ -9,9 +9,10 @@ import sys
 import os 
 from brokerData import* #Informacion de la conexion
 from clienttcp import*
+from cifrado import*
 
 #GDTA SE CONFIGURA ARCHIVO PARA HISTORIAL Y LOGGING
-LOG_FILENAME = 'mqtt.log'
+LOG_FILENAME = 'mqtt'
 sockt = socket.socket()
 audio = Cliente_tcp()
 #os.remove("mqtt.log")
@@ -44,7 +45,7 @@ class comandos:
                     if desconeccion == 200:
                         logging.critical('no se puede establecer conexión al servidor.')
                         sys.exit()
-                        client.loop_stop() 
+                        
             if len(a) > 1:
                 ALIVE_PERIOD = 2
                 intentos = 0
@@ -63,8 +64,10 @@ class comandos:
     #SMC pasa a un vector los mensajes que llegan
     def negociación (self,mnsa):
         res = mnsa.split('$')
+        print(res)
         res[0]=res[0].replace("b'\\",'')
-        return res[0]
+        res[1]=res[0:-2]
+        return res[0] , res[1]
     #SMC verifica las respuestas del servidor 
     def respuesta (self):
         vect_respuesta = read(LOG_FILENAME)
@@ -82,8 +85,6 @@ class comandos:
            
 
     #SMC Representacion cuando se invoca el objeto sin casting a STRING.
-    def __repr__(self):
-        return self.__str__()
 
 #SMC clase de manejo del cliente
 class Manejo_Cliente:
@@ -95,7 +96,7 @@ class Manejo_Cliente:
         print('b. Enviar a sala')
         t = input('-:')
         if t == 'a':
-            print('1. 201612625')
+            print('1. 201612146')
             print('2. ---')
             t = input('-:')
             if t == '1' :
@@ -114,6 +115,7 @@ class Manejo_Cliente:
                 client.publish(topic_sala1 , trama, qos = 0,retain = False)
             if t == '2' :
                 t = input('escriba el texto:  ')
+                t = cifrar(t)
                 trama = user_t + SEPARADOR + t.encode() #codifica el mensaje 
                 #enviamos el mensaje
                 client.publish(topic_sala2, trama, qos = 0,retain = False)
@@ -177,7 +179,7 @@ def play():
 
 #Handler en caso suceda la conexion con el broker MQTT
 def on_connect(client, userdata, flags, rc): 
-    client.subscribe([SUBS_comandos,SUBS_usuario,SUBS_sala1,SUBS_sala2])#suscripcion
+    client.subscribe([SUBS_comandos,SUBS_usuario,SUBS_sala1,SUBS_sala2,SUBS_usuario2])#suscripcion
     #SMC evia el mensaje de alive 
     t2 = threading.Thread (name = 'verificacion',
                             target = comand.alive,
@@ -196,25 +198,27 @@ def on_publish(client, userdata, mid):
 
 def on_message(client, userdata, msg):
     #Se muestra en pantalla informacion que ha llegado
-    respuesta = comand.negociación(str(msg.payload))
-
+    
+    respuesta, user = comand.negociación(str(msg.payload))
+    user = descifrar(user)
     if topic_comandos == str(msg.topic) and FRR1 == respuesta:
         audio.recibir_audio()
         hil ()
   
-    if topic_comandos == str(msg.topic) and str(ACK1)== respuesta:
+    elif topic_comandos == str(msg.topic) and str(ACK1)== respuesta and str(usuario) == user :
         logging.info("Ha llegado el mensaje al topic: " + str(msg.topic))
         logging.info("El contenido del mensaje es: " + str(msg.payload))
+        print('hola')
         mensaje = msg.payload
         i = 1
         comand.archi(mensaje,i)
-    if topic_comandos == str(msg.topic) and (str(NO1) == respuesta or str(OK1)== respuesta):
+    elif topic_comandos == str(msg.topic) and (str(NO1) == respuesta or str(OK1)== respuesta):
         logging.info("Ha llegado el mensaje al topic: " + str(msg.topic))
         logging.info("El contenido del mensaje es: " + str(msg.payload))
         mensaje = msg.payload
         i = 4
         comand.archi(mensaje,i)
-    if topic_comandos == str(msg.topic) and str(FRR1) == respuesta :
+    elif topic_comandos == str(msg.topic) and str(FRR1) == respuesta :
         logging.info("Ha llegado el mensaje al topic: " + str(msg.topic))
         logging.info("El contenido del mensaje es: " + str(msg.payload))
         mensaje = msg.payload

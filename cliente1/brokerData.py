@@ -9,7 +9,7 @@ BUFFER_SIZE = 64*1024
 #MQTT_PASS = "Patito!#2020"
 MQTT_USER = "proyectos"
 MQTT_PASS = "proyectos980"
-arch = 'topics.log'
+arch = 'topics'
 ESTADO_ALIVE = False
 ALIVE_PERIOD = 2
 #SMC pasa los datos del archivo  a una vector
@@ -28,7 +28,7 @@ usuario = datos[1]
 sala1= datos[3]
 sala2= datos[4]
 sala3= datos[5]
-qos = 0
+qos = 2
 user2 = datos[13]  #titus
 user2_t = datos[13].encode() 
 user_t =datos[1].encode()  #sebas
@@ -66,6 +66,7 @@ SUBS_comandos = (datos[7], qos)
 SUBS_usuario = (datos[8], qos)
 SUBS_sala1 = (datos[9], qos)
 SUBS_sala2 = (datos[10], qos)
+
 #SMC tramas de comandos
 trama_ACK = ACK+user_t
 
@@ -82,3 +83,4 @@ topic_audio_sala2 = 'salas/'+str(GRUPO)+'/'+str(sala1)
 
 
 
+SUBS_usuario2 = (PUBL_user2, qos)

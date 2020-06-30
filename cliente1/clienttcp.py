@@ -2,14 +2,14 @@ import os
 import threading as hilo
 import socket
 import logging
-HOST = '167.71.243.238'
+
 
 
 
 #GDTA CLASE QUE MANEJA LA COMUNICACION TCP DEL CLIENTE
 class Cliente_tcp:
     def __init__(self):              #GDTA CONSTRCTOR
-        self.HOST = "167.71.243.238" #GDTA IP HOST
+        self.HOST = "localhost" #GDTA IP HOST
         self.TCP_PORT = 9824         #GDTA PUERTO TCP
         self.BUFF_SIZE = 64 * 1024   #GDTA TAMAÑO DE BUFFER
 
